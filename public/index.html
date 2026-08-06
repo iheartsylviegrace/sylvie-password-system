@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go Through the Looking Glass</title>
+
+  <script
+    src="https://www.paypal.com/sdk/js?client-id=BAApihl0eKRXGR5NJfflStkyx9Yw0oZ6-CkSY5BNEyVarL-BKMQjvQmOqIbl19qzPHgguxq4_EwpSLr_qo&currency=USD&intent=capture&components=buttons,applepay,funding-eligibility&enable-funding=venmo,paylater"
+    data-page-type="checkout"
+  ></script>
+
+  <script src="https://applepay.cdn-apple.com/jsapi/1.latest/apple-pay-sdk.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px 12px;
+      background: #000;
+      color: #1717a8;
+      font-family: Arial, sans-serif;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      padding: 34px 30px 30px;
+      border: 1px solid currentColor;
+      border-radius: 18px;
+      text-align: center;
+    }
+
+    .rabbit {
+      margin-bottom: 12px;
+      font-size: 38px;
+      line-height: 1;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(25px, 6vw, 34px);
+      font-weight: normal;
+      line-height: 1.15;
+    }
+
+    .price {
+      margin: 18px 0 8px;
+      font-size: clamp(40px, 9vw, 56px);
+      line-height: 1;
+    }
+
+    .period {
+      margin: 0 0 24px;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .description {
+      margin: 0 auto 24px;
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      text-align: left;
+      font-size: 14px;
+    }
+
+    input {
+      width: 100%;
+      height: 50px;
+      padding: 0 15px;
+      border: 1px solid currentColor;
+      border-radius: 8px;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-size: 16px;
+    }
+
+    input:focus {
+      outline: 2px solid currentColor;
+      outline-offset: 3px;
+    }
+
+    input:disabled {
+      opacity: 0.65;
+    }
+
+    #message {
+      min-height: 42px;
+      padding: 11px 0 7px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    #message.success {
+      font-weight: bold;
+    }
+
+    #applepay-container {
+      display: none;
+      margin-bottom: 12px;
+    }
+
+    apple-pay-button {
+      width: 100%;
+      height: 48px;
+      --apple-pay-button-width: 100%;
+      --apple-pay-button-height: 48px;
+      --apple-pay-button-border-radius: 5px;
+      --apple-pay-button-padding: 0;
+      --apple-pay-button-box-sizing: border-box;
+    }
+
+    #paypal-buttons {
+      min-height: 48px;
+    }
+
+    .footnote {
+      margin: 18px 0 0;
+      font-size: 12px;
+      line-height: 1.45;
+      opacity: 0.7;
+    }
+
+    @media (max-width: 520px) {
+      body { padding: 16px 8px; }
+      .card {
+        padding: 29px 20px 25px;
+        border-radius: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="card">
+    <div class="rabbit" aria-hidden="true">🐇</div>
+    <h1>Go Through the Looking Glass</h1>
+    <div class="price">$5</div>
+
+    <p class="period" id="period">Weekly access</p>
+
+    <p class="description">
+      Enter the email address where you would like your current access password sent.
+      Delivery is immediate after payment.
+    </p>
+
+    <label for="customer-email">Email address</label>
+    <input
+      id="customer-email"
+      type="email"
+      inputmode="email"
+      autocomplete="email"
+      placeholder="you@example.com"
+      required
+    >
+
+    <div id="message" role="status" aria-live="polite"></div>
+
+    <div id="applepay-container">
+      <apple-pay-button
+        id="applepay-button"
+        buttonstyle="black"
+        type="buy"
+        locale="en-US"
+      ></apple-pay-button>
+    </div>
+
+    <div id="paypal-buttons"></div>
+
+    <p class="footnote">
+      A new $5 purchase is required after the weekly password changes.
+    </p>
+  </main>
+
+  <script>
+    (() => {
+      const emailInput = document.getElementById("customer-email");
+      const message = document.getElementById("message");
+      const period = document.getElementById("period");
+      const paypalButtonsContainer = document.getElementById("paypal-buttons");
+      const applePayContainer = document.getElementById("applepay-container");
+      const applePayButton = document.getElementById("applepay-button");
+
+      let completed = false;
+      let applePayConfig = null;
+      let applePayClient = null;
+
+      function setMessage(text, type = "") {
+        message.textContent = text;
+        message.className = type;
+      }
+
+      function getEmail() {
+        const email = emailInput.value.trim().toLowerCase();
+
+        if (!email || !emailInput.checkValidity()) {
+          emailInput.reportValidity();
+          setMessage("Enter a valid email address before paying.");
+          return null;
+        }
+
+        return email;
+      }
+
+      function showExpiration() {
+        const now = new Date();
+        const pacific = new Date(
+          now.toLocaleString("en-US", { timeZone: "America/Los_Angeles" })
+        );
+        const daysUntilSunday = (7 - pacific.getDay()) % 7;
+        pacific.setDate(pacific.getDate() + daysUntilSunday);
+
+        const formatted = new Intl.DateTimeFormat("en-US", {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+          year: "numeric"
+        }).format(pacific);
+
+        period.textContent =
+          `Current access is valid through ${formatted} at 11:59 PM Pacific.`;
+      }
+
+      async function readJson(response) {
+        const text = await response.text();
+        if (!text) return {};
+
+        try {
+          return JSON.parse(text);
+        } catch {
+          return { error: "The server returned an unreadable response." };
+        }
+      }
+
+      async function createOrder() {
+        const response = await fetch("/api/create-paypal-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        const result = await readJson(response);
+
+        if (!response.ok || !result.id) {
+          throw new Error(result.error || "The checkout could not be opened.");
+        }
+
+        return result.id;
+      }
+
+      async function captureOrder(orderId, customerEmail) {
+        const response = await fetch("/api/capture-paypal-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            orderId,
+            customerEmail
+          })
+        });
+
+        const result = await readJson(response);
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            result.error || "The payment could not be completed."
+          );
+        }
+
+        return result;
+      }
+
+      function finishCheckout(result) {
+        completed = true;
+        emailInput.disabled = true;
+        paypalButtonsContainer.style.display = "none";
+        applePayContainer.style.display = "none";
+
+        setMessage(
+          result.alreadySent
+            ? "This transaction was already processed. Check your inbox."
+            : "Payment complete. Your password has been emailed to you.",
+          "success"
+        );
+      }
+
+      function renderStandardButtons() {
+        if (!window.paypal?.Buttons) {
+          setMessage("Checkout could not load. Refresh the page.");
+          return;
+        }
+
+        const buttons = paypal.Buttons({
+          style: {
+            layout: "vertical",
+            shape: "rect",
+            label: "checkout",
+            height: 48,
+            tagline: false
+          },
+
+          onClick(data, actions) {
+            if (completed || !getEmail()) {
+              return actions.reject();
+            }
+
+            setMessage("");
+            return actions.resolve();
+          },
+
+          async createOrder() {
+            setMessage("Opening secure checkout…");
+            return createOrder();
+          },
+
+          async onApprove(data) {
+            try {
+              const email = getEmail();
+              if (!email) return;
+
+              setMessage("Completing payment and sending your password…");
+              const result = await captureOrder(data.orderID, email);
+              finishCheckout(result);
+            } catch (error) {
+              console.error(error);
+              setMessage(error.message || "The payment could not be completed.");
+            }
+          },
+
+          onCancel() {
+            setMessage("Checkout was cancelled. You have not been charged.");
+          },
+
+          onError(error) {
+            console.error(error);
+            setMessage("Checkout encountered an error. Refresh and try again.");
+          }
+        });
+
+        if (buttons.isEligible()) {
+          buttons.render("#paypal-buttons");
+        }
+      }
+
+      async function prepareApplePay() {
+        if (
+          !window.paypal?.Applepay ||
+          !window.ApplePaySession ||
+          !ApplePaySession.canMakePayments()
+        ) {
+          return;
+        }
+
+        try {
+          applePayClient = paypal.Applepay();
+          applePayConfig = await applePayClient.config();
+
+          if (!applePayConfig.isEligible) {
+            return;
+          }
+
+          applePayContainer.style.display = "block";
+        } catch (error) {
+          console.error("Apple Pay configuration error:", error);
+        }
+      }
+
+      applePayButton.addEventListener("click", async () => {
+        if (completed) return;
+
+        const customerEmail = getEmail();
+        if (!customerEmail || !applePayClient || !applePayConfig) {
+          return;
+        }
+
+        const paymentRequest = {
+          countryCode: applePayConfig.countryCode,
+          merchantCapabilities: applePayConfig.merchantCapabilities,
+          supportedNetworks: applePayConfig.supportedNetworks,
+          currencyCode: "USD",
+          requiredBillingContactFields: ["postalAddress"],
+          total: {
+            label: "Sylvie Grace Weekly Access",
+            type: "final",
+            amount: "5.00"
+          }
+        };
+
+        const session = new ApplePaySession(4, paymentRequest);
+
+        session.onvalidatemerchant = async (event) => {
+          try {
+            const result = await applePayClient.validateMerchant({
+              validationUrl: event.validationURL,
+              displayName: "Sylvie Grace"
+            });
+
+            session.completeMerchantValidation(result.merchantSession);
+          } catch (error) {
+            console.error("Apple Pay merchant validation error:", error);
+            session.abort();
+            setMessage("Apple Pay could not be started.");
+          }
+        };
+
+        session.onpaymentauthorized = async (event) => {
+          try {
+            setMessage("Completing payment and sending your password…");
+
+            const orderId = await createOrder();
+
+            await applePayClient.confirmOrder({
+              orderId,
+              token: event.payment.token,
+              billingContact: event.payment.billingContact
+            });
+
+            const result = await captureOrder(orderId, customerEmail);
+
+            session.completePayment(ApplePaySession.STATUS_SUCCESS);
+            finishCheckout(result);
+          } catch (error) {
+            console.error("Apple Pay payment error:", error);
+            session.completePayment(ApplePaySession.STATUS_FAILURE);
+            setMessage(error.message || "Apple Pay could not be completed.");
+          }
+        };
+
+        session.oncancel = () => {
+          setMessage("Apple Pay was cancelled. You have not been charged.");
+        };
+
+        session.begin();
+      });
+
+      showExpiration();
+      renderStandardButtons();
+      prepareApplePay();
+    })();
+  </script>
+</body>
+</html>
