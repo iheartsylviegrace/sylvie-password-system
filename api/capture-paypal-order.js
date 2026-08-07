@@ -313,35 +313,48 @@ export default async function handler(req, res) {
           to: normalizedEmail,
           subject:
             "Your Sylvie Grace access password",
-          html: `
-            <div style="font-family:Arial,sans-serif;line-height:1.5;">
-              <h2>Go Through the Looking Glass 🐇</h2>
+        html: `
+  <div style="font-family:Arial,sans-serif;line-height:1.5;">
+    <p>Thank you for your purchase.</p>
 
-              <p>Thank you for your purchase.</p>
+    <p>Your current access password is:</p>
 
-              <p>Your current access password is:</p>
+    <p
+      style="
+        font-size:32px;
+        font-weight:bold;
+        letter-spacing:2px;
+        margin:24px 0;
+      "
+    >
+      ${password}
+    </p>
 
-              <p
-                style="
-                  font-size:32px;
-                  font-weight:bold;
-                  letter-spacing:2px;
-                  margin:24px 0;
-                "
-              >
-                ${password}
-              </p>
+    <p>
+      This password provides access for the current
+      weekly period.
+    </p>
 
-              <p>
-                This password provides access for the current
-                weekly period.
-              </p>
+    <p>
+      A new $5 purchase is required after the password
+      changes.
+    </p>
 
-              <p>
-                A new $5 purchase is required after the password
-                changes.
-              </p>
-            </div>
+    <div style="margin-top:40px;text-align:center;">
+      <a
+        href="https://sylviegrace.com/thelookingglass"
+        style="
+          color:#c62828;
+          text-decoration:none;
+          font-size:16px;
+          font-family:Arial,sans-serif;
+        "
+      >
+        🐇 go through the looking glass
+      </a>
+    </div>
+  </div>
+`
           `
         },
         {
