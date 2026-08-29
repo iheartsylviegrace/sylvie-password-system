@@ -11,7 +11,7 @@ const map = new mapboxgl.Map({
 
     projection: "globe",
 
-    center: [0,15],
+    center: [0, 15],
 
     zoom: 1.45,
 
@@ -21,17 +21,17 @@ const map = new mapboxgl.Map({
 
     antialias: true,
 
-    config:{
+    config: {
 
-        basemap:{
+        basemap: {
 
-            showRoadLabels:false,
-            showPointOfInterestLabels:false,
-            showPlaceLabels:false,
-            showTransitLabels:false,
-            showPedestrianRoads:false,
-            showRoadsAndTransit:false,
-            showAdminBoundaries:false
+            showRoadLabels: false,
+            showPointOfInterestLabels: false,
+            showPlaceLabels: false,
+            showTransitLabels: false,
+            showPedestrianRoads: false,
+            showRoadsAndTransit: false,
+            showAdminBoundaries: false
 
         }
 
@@ -46,25 +46,25 @@ map.addControl(
     "top-right"
 );
 
-map.on("style.load",()=>{
+map.on("style.load", () => {
 
     map.setProjection("globe");
 
     map.setFog({
 
-        color:"rgb(170,200,235)",
+        color: "rgb(170,200,235)",
 
-        "high-color":"rgb(25,45,90)",
+        "high-color": "rgb(25,45,90)",
 
-        "space-color":"rgb(2,2,8)",
+        "space-color": "rgb(2,2,8)",
 
-        "horizon-blend":0.08,
+        "horizon-blend": 0.08,
 
-        "star-intensity":0.8
+        "star-intensity": 0.8
 
     });
 
-    if(window.currentAstroData){
+    if (window.currentAstroData) {
 
         drawAstroLines(window.currentAstroData);
 
@@ -72,24 +72,26 @@ map.on("style.load",()=>{
 
 });
 
+
 let userInteracting = false;
 
-function rotateGlobe(){
 
-    if(userInteracting) return;
+function rotateGlobe() {
 
-    if(map.getZoom() < 4){
+    if (userInteracting) {
+
+        requestAnimationFrame(rotateGlobe);
+        return;
+
+    }
+
+    if (map.getZoom() < 4) {
 
         map.rotateTo(
-
-            map.getBearing()+0.04,
-
+            map.getBearing() + 0.04,
             {
-
-                duration:0
-
+                duration: 0
             }
-
         );
 
     }
@@ -98,181 +100,322 @@ function rotateGlobe(){
 
 }
 
-map.on("mousedown",()=>{
 
-    userInteracting=true;
+map.on("mousedown", () => {
 
-});
-
-map.on("mouseup",()=>{
-
-    userInteracting=false;
+    userInteracting = true;
 
 });
 
-map.on("dragend",()=>{
 
-    userInteracting=false;
+map.on("mouseup", () => {
 
-});
-
-map.on("touchend",()=>{
-
-    userInteracting=false;
+    userInteracting = false;
 
 });
 
-map.on("load",()=>{
+
+map.on("dragend", () => {
+
+    userInteracting = false;
+
+});
+
+
+map.on("touchstart", () => {
+
+    userInteracting = true;
+
+});
+
+
+map.on("touchend", () => {
+
+    userInteracting = false;
+
+});
+
+
+map.on("load", () => {
 
     rotateGlobe();
 
 });
 
-function drawAstroLines(data){
 
-    if(!data.lines){
+function drawAstroLines(data) {
 
-        console.log("No astro lines.");
+    if (!data || !Array.isArray(data.lines)) {
 
+        console.error("No astrocartography lines found.", data);
         return;
 
     }
 
-    const features = data.lines.map(line=>({
 
-        type:"Feature",
+    const features = [];
 
-        properties:{
 
-            planet:line.object,
+    data.lines.forEach((planetData) => {
 
-            lineType:line.line_type
+        const planet = planetData.object || "Unknown";
 
-        },
+        const lineGroups = [
+            planetData.asc,
+            planetData.dsc,
+            planetData.ic,
+            planetData.mc
+        ];
 
-        geometry:{
 
-            type:"LineString",
+        lineGroups.forEach((lineData) => {
 
-            coordinates:line.points.map(point=>([
+            if (!lineData) {
 
-                point.longitude_deg,
+                return;
 
-                point.latitude_deg
+            }
 
-            ]))
 
-        }
+            /*
+            CURVED LINES
+            AC / DC normally arrive as:
+            {
+                kind: "curve",
+                line_type: "AC",
+                points: [...]
+            }
+            */
 
-    }));
+            if (
+                lineData.kind === "curve" &&
+                Array.isArray(lineData.points) &&
+                lineData.points.length >= 2
+            ) {
 
-    function addLines(){
+                const coordinates = lineData.points
+                    .filter((point) =>
+                        Number.isFinite(point.longitude_deg) &&
+                        Number.isFinite(point.latitude_deg)
+                    )
+                    .map((point) => [
 
-        if(map.getLayer("astro-lines")){
+                        point.longitude_deg,
+                        point.latitude_deg
 
-            map.removeLayer("astro-lines");
+                    ]);
 
-        }
 
-        if(map.getSource("astro-lines")){
+                if (coordinates.length >= 2) {
 
-            map.removeSource("astro-lines");
+                    features.push({
 
-        }
+                        type: "Feature",
 
-        map.addSource("astro-lines",{
+                        properties: {
 
-            type:"geojson",
+                            planet: planet,
+                            lineType: lineData.line_type || ""
 
-            data:{
+                        },
 
-                type:"FeatureCollection",
+                        geometry: {
 
-                features
+                            type: "LineString",
+                            coordinates: coordinates
+
+                        }
+
+                    });
+
+                }
+
+            }
+
+
+            /*
+            MERIDIAN LINES
+            MC / IC normally arrive as:
+            {
+                kind: "meridian",
+                line_type: "MC",
+                longitude_deg: ...
+            }
+
+            These don't contain a points array, so we create
+            the north/south line ourselves.
+            */
+
+            else if (
+                lineData.kind === "meridian" &&
+                Number.isFinite(lineData.longitude_deg)
+            ) {
+
+                const longitude = lineData.longitude_deg;
+
+                const coordinates = [];
+
+
+                for (let latitude = -85; latitude <= 85; latitude += 5) {
+
+                    coordinates.push([
+
+                        longitude,
+                        latitude
+
+                    ]);
+
+                }
+
+
+                features.push({
+
+                    type: "Feature",
+
+                    properties: {
+
+                        planet: planet,
+                        lineType: lineData.line_type || ""
+
+                    },
+
+                    geometry: {
+
+                        type: "LineString",
+                        coordinates: coordinates
+
+                    }
+
+                });
 
             }
 
         });
 
-        try{
+    });
 
-            map.addLayer({
 
-                id:"astro-lines",
+    console.log(
+        "Astrocartography GeoJSON features:",
+        features.length,
+        features
+    );
 
-                type:"line",
 
-                source:"astro-lines",
+    function addLines() {
 
-                layout:{
+        try {
 
-                    "line-join":"round",
+            if (map.getLayer("astro-lines")) {
 
-                    "line-cap":"round"
+                map.removeLayer("astro-lines");
 
-                },
+            }
 
-                paint:{
+            if (map.getSource("astro-lines")) {
 
-                    "line-color":[
+                map.removeSource("astro-lines");
 
-                        "match",
+            }
 
-                        ["get","planet"],
 
-                        "Sun","#FFD84D",
+            map.addSource("astro-lines", {
 
-                        "Moon","#DDE9FF",
+                type: "geojson",
 
-                        "Mercury","#66FFFF",
+                data: {
 
-                        "Venus","#FF66CC",
-
-                        "Mars","#FF4040",
-
-                        "Jupiter","#FFB366",
-
-                        "Saturn","#FFE066",
-
-                        "Uranus","#66FFEE",
-
-                        "Neptune","#4F7BFF",
-
-                        "Pluto","#CC66FF",
-
-                        "#FFFFFF"
-
-                    ],
-
-                    "line-width":3,
-
-                    "line-opacity":0.95
+                    type: "FeatureCollection",
+                    features: features
 
                 }
 
             });
 
-            console.log("Astrocartography lines added.");
+
+            map.addLayer({
+
+                id: "astro-lines",
+
+                type: "line",
+
+                source: "astro-lines",
+
+                layout: {
+
+                    "line-join": "round",
+                    "line-cap": "round"
+
+                },
+
+                paint: {
+
+                    "line-color": [
+
+                        "match",
+
+                        ["get", "planet"],
+
+                        "Sun", "#FFD84D",
+
+                        "Moon", "#DDE9FF",
+
+                        "Mercury", "#66FFFF",
+
+                        "Venus", "#FF66CC",
+
+                        "Mars", "#FF4040",
+
+                        "Jupiter", "#FFB366",
+
+                        "Saturn", "#FFE066",
+
+                        "Uranus", "#66FFEE",
+
+                        "Neptune", "#4F7BFF",
+
+                        "Pluto", "#CC66FF",
+
+                        "#FFFFFF"
+
+                    ],
+
+                    "line-width": 3,
+
+                    "line-opacity": 0.95
+
+                }
+
+            });
+
+
+            console.log(
+                "Astrocartography lines added successfully."
+            );
 
         }
 
-        catch(error){
+        catch (error) {
 
-            console.error("MAPBOX LAYER ERROR",error);
+            console.error(
+                "MAPBOX LAYER ERROR",
+                error
+            );
 
         }
 
     }
 
-    if(map.isStyleLoaded()){
+
+    if (map.isStyleLoaded()) {
 
         addLines();
 
     }
 
-    else{
+    else {
 
-        map.once("style.load",addLines);
+        map.once("style.load", addLines);
 
     }
 
