@@ -135,27 +135,18 @@ function popupHTML(feature) {
     const planet = feature.properties.planet || "Unknown";
     const lineType = feature.properties.lineType || "";
 
-    return `
-        <div style="
-            min-width:220px;
-            font-family:Inter,Helvetica,Arial,sans-serif;
-            color:#111;
-        ">
-            <div style="
-                font-size:20px;
-                font-weight:600;
-                margin-bottom:6px;
-            ">
-                ${planet} ${lineType}
-            </div>
+    const interpretation = window.interpretations?.[planet]?.[lineType];
 
-            <div style="
-                font-size:13px;
-                line-height:1.45;
-                opacity:.78;
-            ">
-                Interactive interpretation panel is ready.
-                Detailed planetary meanings are next.
+    const title = interpretation?.title || `${planet} ${lineType}`;
+    const text = interpretation?.text || "Interpretation coming soon.";
+
+    return `
+        <div style="min-width:260px;font-family:Inter,Helvetica,Arial,sans-serif;color:#111;">
+            <div style="font-size:20px;font-weight:600;margin-bottom:8px;">
+                ${title}
+            </div>
+            <div style="font-size:14px;line-height:1.6;">
+                ${text}
             </div>
         </div>
     `;
