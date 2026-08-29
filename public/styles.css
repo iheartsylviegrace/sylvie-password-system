@@ -1,0 +1,211 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+html,
+body{
+    width:100%;
+    height:100%;
+    overflow:hidden;
+    background:#000;
+    color:white;
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+#app{
+    width:100%;
+    height:100%;
+    display:grid;
+    grid-template-columns:360px 1fr;
+}
+
+#sidebar{
+
+    background:rgba(0,0,0,.72);
+
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+
+    padding:42px;
+
+    overflow-y:auto;
+
+    z-index:10;
+
+    border-right:1px solid rgba(255,255,255,.08);
+
+}
+
+h1{
+
+    font-size:38px;
+
+    font-weight:300;
+
+    letter-spacing:.03em;
+
+}
+
+.subtitle{
+
+    margin-top:8px;
+
+    color:#9f9f9f;
+
+    font-size:15px;
+
+    margin-bottom:40px;
+
+}
+
+label{
+
+    display:block;
+
+    margin-top:22px;
+
+    margin-bottom:8px;
+
+    font-size:13px;
+
+    letter-spacing:.08em;
+
+    text-transform:uppercase;
+
+    color:#bfbfbf;
+
+}
+
+input{
+
+    width:100%;
+
+    padding:14px 16px;
+
+    border-radius:12px;
+
+    border:1px solid rgba(255,255,255,.12);
+
+    background:#101010;
+
+    color:white;
+
+    font-size:16px;
+
+    outline:none;
+
+    transition:.25s;
+
+}
+
+input:focus{
+
+    border-color:#ff2ea6;
+
+    box-shadow:0 0 0 2px rgba(255,46,166,.18);
+
+}
+
+button{
+
+    width:100%;
+
+    margin-top:34px;
+
+    padding:16px;
+
+    border:none;
+
+    border-radius:14px;
+
+    background:#ff2ea6;
+
+    color:white;
+
+    font-size:16px;
+
+    cursor:pointer;
+
+    transition:.25s;
+
+}
+
+button:hover{
+
+    transform:translateY(-1px);
+
+    background:#ff4bb4;
+
+}
+
+button:active{
+
+    transform:translateY(0);
+
+}
+
+#status{
+
+    margin-top:28px;
+
+    min-height:28px;
+
+    color:#7cffc7;
+
+    font-size:14px;
+
+    white-space:pre-wrap;
+
+}
+
+#map{
+
+    position:relative;
+
+    width:100%;
+
+    height:100%;
+
+}
+
+.mapboxgl-canvas{
+
+    cursor:grab;
+
+}
+
+.mapboxgl-canvas:active{
+
+    cursor:grabbing;
+
+}
+
+.mapboxgl-ctrl-group{
+
+    border-radius:12px !important;
+
+    overflow:hidden;
+
+}
+
+@media (max-width:900px){
+
+    #app{
+
+        grid-template-columns:1fr;
+
+        grid-template-rows:420px 1fr;
+
+    }
+
+    #sidebar{
+
+        border-right:none;
+
+        border-bottom:1px solid rgba(255,255,255,.08);
+
+    }
+
+}
