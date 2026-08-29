@@ -691,4 +691,3 @@ function drawAstroLines(data) {
         map.once("style.load", addLines);
     }
 }
-```
