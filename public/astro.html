@@ -103,10 +103,67 @@ Generate Chart
 
 <script>
 
-document.getElementById("generate").onclick = function(){
+document.getElementById("generate").onclick = async function(){
 
-    document.getElementById("result").textContent =
-        "Frontend working ✔";
+    const result = document.getElementById("result");
+
+    result.style.color = "#ffffff";
+    result.textContent = "Generating chart...";
+
+    const birthDate = document.getElementById("date").value.split("-");
+    const birthTime = document.getElementById("time").value.split(":");
+
+    try{
+
+        const response = await fetch("/api/astrocartography",{
+
+            method:"POST",
+
+            headers:{
+                "Content-Type":"application/json"
+            },
+
+            body:JSON.stringify({
+
+                name:document.getElementById("name").value,
+
+                day:Number(birthDate[2]),
+
+                month:Number(birthDate[1]),
+
+                year:Number(birthDate[0]),
+
+                hour:Number(birthTime[0]),
+
+                minute:Number(birthTime[1]),
+
+                latitude:0,
+
+                longitude:0,
+
+                timezone:0,
+
+                birthCity:document.getElementById("city").value
+
+            })
+
+        });
+
+        const data = await response.json();
+
+        console.log(data);
+
+        result.style.color="#7cff7c";
+        result.textContent=JSON.stringify(data,null,2);
+
+    }catch(err){
+
+        console.error(err);
+
+        result.style.color="#ff7777";
+        result.textContent=err.message;
+
+    }
 
 };
 
