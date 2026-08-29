@@ -391,8 +391,49 @@ function drawAstroLines(data) {
 
             console.log(
                 "Astrocartography lines added successfully."
-            );
+            );// ---------- CLICKABLE PLANET LINES ----------
 
+map.on("click", "astro-lines", (e) => {
+
+    const feature = e.features[0];
+
+    new mapboxgl.Popup({
+
+        offset: 12,
+        closeButton: true
+
+    })
+
+    .setLngLat(e.lngLat)
+
+    .setHTML(`
+
+        <h3>${feature.properties.planet}</h3>
+
+        <p><strong>${feature.properties.lineType}</strong></p>
+
+        <p>
+            Clicked an astrocartography line.
+            Planet interpretations coming next.
+        </p>
+
+    `)
+
+    .addTo(map);
+
+});
+
+map.on("mouseenter","astro-lines",()=>{
+
+    map.getCanvas().style.cursor="pointer";
+
+});
+
+map.on("mouseleave","astro-lines",()=>{
+
+    map.getCanvas().style.cursor="";
+
+});
         }
 
         catch (error) {
