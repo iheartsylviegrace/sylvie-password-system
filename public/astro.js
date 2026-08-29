@@ -81,12 +81,14 @@ form.addEventListener("submit", async (event) => {
 
         const data = await response.json();
 
-        console.log(data);
+        // Save globally so map.js can redraw after style changes
+        window.currentAstroData = data;
+
+        console.log("API Response:", data);
+        console.log("Number of lines:", data.lines?.length);
 
         status.style.color = "#7cffc7";
-
-        status.textContent =
-            "Chart generated.";
+        status.textContent = "Chart generated.";
 
         drawAstroLines(data);
 
@@ -97,7 +99,6 @@ form.addEventListener("submit", async (event) => {
         console.error(error);
 
         status.style.color = "#ff7777";
-
         status.textContent = error.message;
 
     }
