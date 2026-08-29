@@ -1,79 +1,47 @@
-<!DOCTYPE html>
-<html lang="en">
+<h1>The World &amp; You</h1>
 
-<head>
+<p class="subtitle">
+    Astrocartography
+</p>
 
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<form id="birth-data-form">
 
-<title>The Looking Glass</title>
+    <label>Name</label>
+    <input
+        id="name"
+        autocomplete="name"
+    >
 
-<link href="https://api.mapbox.com/mapbox-gl-js/v3.28.0/mapbox-gl.css" rel="stylesheet">
-<script src="https://api.mapbox.com/mapbox-gl-js/v3.28.0/mapbox-gl.js"></script>
+    <label>Date of Birth</label>
+    <input
+        id="date"
+        type="date"
+        required
+    >
 
-<link rel="stylesheet" href="/styles.css">
+    <label>Time of Birth</label>
+    <input
+        id="time"
+        type="time"
+        required
+    >
 
-</head>
+    <label>Birth City</label>
+    <input
+        id="city"
+        placeholder="Chicago, IL"
+        required
+    >
 
-<body>
+    <button
+        id="generate"
+        type="submit"
+    >
+        Generate Chart
+    </button>
 
-<div id="map"></div>
+</form>
 
-<aside id="sidebar">
-
-    <h1>The Looking Glass</h1>
-
-    <p class="subtitle">
-        Astrocartography
-    </p>
-
-    <form id="birth-data-form">
-
-        <label>Name</label>
-        <input
-            id="name"
-            autocomplete="name"
-        >
-
-        <label>Date of Birth</label>
-        <input
-            id="date"
-            type="date"
-            required
-        >
-
-        <label>Time of Birth</label>
-        <input
-            id="time"
-            type="time"
-            required
-        >
-
-        <label>Birth City</label>
-        <input
-            id="city"
-            placeholder="Chicago, IL"
-            required
-        >
-
-        <button
-            id="generate"
-            type="submit"
-        >
-            Generate Chart
-        </button>
-
-    </form>
-
-    <div id="status">
-        Waiting...
-    </div>
-
-</aside>
-
-<script src="/map.js"></script>
-<script src="/astro.js"></script>
-
-</body>
-
-</html>
+<div id="status">
+    Waiting...
+</div>
