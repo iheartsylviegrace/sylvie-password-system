@@ -9,6 +9,8 @@ const map = new mapboxgl.Map({
     projection: "globe",
     center: [0, 15],
     zoom: 1.45,
+    minZoom: 0.8,
+    maxZoom: 18,
     pitch: 0,
     bearing: 0,
     antialias: true,
@@ -28,12 +30,40 @@ const map = new mapboxgl.Map({
 window.map = map;
 
 map.addControl(
-    new mapboxgl.NavigationControl(),
+    new mapboxgl.NavigationControl({
+        showCompass: true,
+        showZoom: true,
+        visualizePitch: true
+    }),
     "top-right"
 );
 
+// Make the globe easier to explore and allow close-up terrain zooming.
+map.scrollZoom.enable();
+map.dragPan.enable();
+map.dragRotate.enable();
+map.touchZoomRotate.enable();
+map.doubleClickZoom.enable();
+map.keyboard.enable();
+
+// Keep rotation from fighting the user once they zoom toward real terrain.
+map.on("zoomstart", () => { userInteracting = true; });
+map.on("zoomend", () => { userInteracting = false; });
+
 map.on("style.load", () => {
     map.setProjection("globe");
+
+    // Add real 3D terrain for close-up exploration.
+    if (!map.getSource("mapbox-dem")) {
+        map.addSource("mapbox-dem", {
+            type: "raster-dem",
+            url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+            tileSize: 512,
+            maxzoom: 14
+        });
+    }
+
+    map.setTerrain({ source: "mapbox-dem", exaggeration: 1.15 });
 
     map.setFog({
         color: "rgb(170,200,235)",
@@ -59,7 +89,7 @@ function rotateGlobe() {
         return;
     }
 
-    if (map.getZoom() < 4) {
+    if (map.getZoom() < 2.6) {
         map.rotateTo(
             map.getBearing() + 0.04,
             { duration: 0 }
@@ -661,3 +691,4 @@ function drawAstroLines(data) {
         map.once("style.load", addLines);
     }
 }
+```
