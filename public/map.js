@@ -122,3 +122,104 @@ map.on("load",()=>{
     rotateGlobe();
 
 });
+function drawAstroLines(data){
+
+    if(!data.lines) return;
+
+    // remove previous chart
+    if(map.getLayer("astro-lines")){
+        map.removeLayer("astro-lines");
+    }
+
+    if(map.getSource("astro-lines")){
+        map.removeSource("astro-lines");
+    }
+
+    const features = [];
+
+    data.lines.forEach(line => {
+
+        const coordinates = line.points.map(point => [
+
+            point.longitude_deg,
+            point.latitude_deg
+
+        ]);
+
+        features.push({
+
+            type:"Feature",
+
+            properties:{
+
+                planet:line.object,
+                type:line.line_type
+
+            },
+
+            geometry:{
+
+                type:"LineString",
+
+                coordinates
+
+            }
+
+        });
+
+    });
+
+    map.addSource("astro-lines",{
+
+        type:"geojson",
+
+        data:{
+
+            type:"FeatureCollection",
+
+            features
+
+        }
+
+    });
+
+    map.addLayer({
+
+        id:"astro-lines",
+
+        type:"line",
+
+        source:"astro-lines",
+
+        paint:{
+
+            "line-color":[
+
+                "match",
+
+                ["get","planet"],
+
+                "Sun","#FFD84D",
+                "Moon","#DDE9FF",
+                "Mercury","#8EF7FF",
+                "Venus","#FF73D0",
+                "Mars","#FF4040",
+                "Jupiter","#FFAA55",
+                "Saturn","#FFE08C",
+                "Uranus","#58F7FF",
+                "Neptune","#4E7BFF",
+                "Pluto","#CC66FF",
+
+                "#ffffff"
+
+            ],
+
+            "line-width":2.4,
+
+            "line-opacity":0.95
+
+        }
+
+    });
+
+}
