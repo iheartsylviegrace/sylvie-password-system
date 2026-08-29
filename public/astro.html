@@ -117,17 +117,43 @@ Generate Chart
 <script>
 
 mapboxgl.accessToken =
-"pk.eyJ1Ijoic3lsdmllZ3JhY2UiLCJhIjoiY210ZG5idXF5MDVzbzM0b2puMXZscDk5NiJ9.PToyVgmuXaELzF8xoMynmg";
+"YOUR_PUBLIC_MAPBOX_TOKEN";
 
 const map = new mapboxgl.Map({
+
     container:"map",
-    style:"mapbox://styles/mapbox/standard",
+
+    style:"mapbox://styles/mapbox/satellite-streets-v12",
+
     projection:"globe",
+
     center:[0,20],
-    zoom:1.4
+
+    zoom:1.5,
+
+    pitch:25,
+
+    antialias:true
+
 });
 
 map.addControl(new mapboxgl.NavigationControl());
+
+map.on("style.load", () => {
+
+    map.setFog({
+
+        color:"rgb(186,210,235)",
+
+        "high-color":"rgb(36,92,223)",
+
+        "space-color":"rgb(5,5,15)",
+
+        "star-intensity":0.8
+
+    });
+
+});
 
 document.getElementById("generate").onclick = async function(){
 
