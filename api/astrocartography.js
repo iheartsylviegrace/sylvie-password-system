@@ -1,7 +1,13 @@
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "POST, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type"
+  );
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -15,7 +21,6 @@ export default async function handler(req, res) {
 
   try {
     const {
-      name,
       day,
       month,
       year,
@@ -24,43 +29,51 @@ export default async function handler(req, res) {
       latitude,
       longitude,
       timezone
-    } = req.body;
+    } = req.body ?? {};
 
     const response = await fetch(
-      "https://json.astrologyapi.com/v1/astro_details",
+      "https://json.astrologyapi.com/v1/acg/travel",
       {
         method: "POST",
+
         headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from(
-              process.env.ASTROLOGY_API_USER +
-                ":" +
-                process.env.ASTROLOGY_API_KEY
-            ).toString("base64"),
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-astrologyapi-key":
+            process.env.ASTROLOGY_API_KEY
         },
+
         body: JSON.stringify({
           day: Number(day),
           month: Number(month),
           year: Number(year),
           hour: Number(hour),
           min: Number(minute),
+          second: 0,
+          tzone: Number(timezone),
           lat: Number(latitude),
           lon: Number(longitude),
-          tzone: Number(timezone)
+          include_parans: false
         })
       }
     );
 
     const data = await response.json();
 
-    return res.status(200).json(data);
-  } catch (err) {
-    console.error(err);
+    return res
+      .status(response.status)
+      .json(data);
+
+  } catch (error) {
+    console.error(
+      "Astrocartography API error:",
+      error
+    );
 
     return res.status(500).json({
-      error: err.message
+      error:
+        error instanceof Error
+          ? error.message
+          : "Astrocartography request failed."
     });
   }
 }
