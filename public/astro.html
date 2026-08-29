@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>The Looking Glass • Astrocartography</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    background:#000;
+    color:#fff;
+    font-family:Helvetica,Arial,sans-serif;
+}
+
+main{
+    width:min(700px,92%);
+    margin:60px auto;
+}
+
+h1{
+    font-size:42px;
+    font-weight:300;
+    margin-bottom:12px;
+}
+
+p{
+    color:#999;
+    margin-bottom:40px;
+}
+
+label{
+    display:block;
+    margin-top:20px;
+    margin-bottom:6px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    background:#111;
+    border:1px solid #333;
+    color:white;
+    font-size:16px;
+}
+
+button{
+    margin-top:30px;
+    width:100%;
+    padding:16px;
+    background:white;
+    color:black;
+    border:none;
+    font-size:16px;
+    cursor:pointer;
+}
+
+button:hover{
+    opacity:.85;
+}
+
+#result{
+    margin-top:30px;
+    white-space:pre-wrap;
+    color:#7cff7c;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<main>
+
+<h1>Astrocartography</h1>
+
+<p>If you can see this page, the astrocartography frontend is working.</p>
+
+<label>Name</label>
+<input id="name">
+
+<label>Date of Birth</label>
+<input id="date" type="date">
+
+<label>Time of Birth</label>
+<input id="time" type="time">
+
+<label>Birth City</label>
+<input id="city" placeholder="Chicago, IL">
+
+<button id="generate">
+Generate Chart
+</button>
+
+<div id="result"></div>
+
+<script>
+
+document.getElementById("generate").onclick = function(){
+
+    document.getElementById("result").textContent =
+        "Frontend working ✔";
+
+};
+
+</script>
+
+</main>
+
+</body>
+</html>
