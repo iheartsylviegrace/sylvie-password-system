@@ -509,51 +509,125 @@ function bindAstroLineInteractions() {
 
 // ---------- CLICK ANYWHERE ON THE GLOBE ----------
 
-function distanceToSegmentSquared(point, a, b) {
-    const [px, py] = point;
-    const [ax, ay] = a;
-    const [bx, by] = b;
-    const dx = bx - ax;
-    const dy = by - ay;
+const EARTH_RADIUS_MILES = 3958.7613;
 
-    if (dx === 0 && dy === 0) return (px - ax) ** 2 + (py - ay) ** 2;
+function toRadians(value) {
+    return value * Math.PI / 180;
+}
 
-    const t = Math.max(0, Math.min(1,
-        ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
-    ));
+function haversineMiles(a, b) {
+    const lat1 = toRadians(a[1]);
+    const lat2 = toRadians(b[1]);
+    const dLat = lat2 - lat1;
+    const dLng = toRadians(b[0] - a[0]);
 
-    const cx = ax + t * dx;
-    const cy = ay + t * dy;
-    return (px - cx) ** 2 + (py - cy) ** 2;
+    const h =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+
+    return 2 * EARTH_RADIUS_MILES * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
 function nearestAstroLines(lngLat, limit = 3) {
-    if (!window.__astroFeatures) return [];
+    if (!Array.isArray(window.__astroFeatures)) return [];
 
-    const point = [lngLat.lng, lngLat.lat];
+    const clicked = [lngLat.lng, lngLat.lat];
 
-    return window.__astroFeatures.map((feature) => {
-        const coordinates = feature.geometry?.coordinates || [];
-        let best = Infinity;
+    return window.__astroFeatures
+        .map((feature) => {
+            const coordinates = feature.geometry?.coordinates || [];
+            let closestMiles = Infinity;
 
-        for (let i = 0; i < coordinates.length - 1; i++) {
-            best = Math.min(best,
-                distanceToSegmentSquared(point, coordinates[i], coordinates[i + 1])
-            );
-        }
+            for (const coordinate of coordinates) {
+                closestMiles = Math.min(closestMiles, haversineMiles(clicked, coordinate));
+            }
 
-        return { feature, distance: Math.sqrt(best) };
-    })
-    .sort((a, b) => a.distance - b.distance)
-    .slice(0, limit);
+            return { feature, miles: closestMiles };
+        })
+        .sort((a, b) => a.miles - b.miles)
+        .slice(0, limit);
 }
 
-function globePopupHTML(lngLat, nearest) {
-    const coords =
+function proximityLabel(miles) {
+    if (miles <= 50) return "Very close";
+    if (miles <= 150) return "Close";
+    if (miles <= 300) return "Moderate";
+    return "Distant";
+}
+
+async function reverseGeocodeLocation(lngLat) {
+    try {
+        const url =
+            "https://api.mapbox.com/search/geocode/v6/reverse" +
+            "?longitude=" + encodeURIComponent(lngLat.lng) +
+            "&latitude=" + encodeURIComponent(lngLat.lat) +
+            "&types=place,locality,region,country" +
+            "&access_token=" + encodeURIComponent(mapboxgl.accessToken);
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Reverse geocoding failed.");
+
+        const data = await response.json();
+        const features = data.features || [];
+
+        const getType = (feature) =>
+            feature.properties?.feature_type || feature.feature_type || "";
+
+        const getName = (feature) =>
+            feature.properties?.name || feature.text || feature.name || "";
+
+        const place =
+            features.find((f) => getType(f) === "place") ||
+            features.find((f) => getType(f) === "locality");
+        const region = features.find((f) => getType(f) === "region");
+        const country = features.find((f) => getType(f) === "country");
+
+        const parts = [];
+        const placeName = place ? getName(place) : "";
+        const regionName = region ? getName(region) : "";
+        const countryName = country ? getName(country) : "";
+
+        if (placeName) parts.push(placeName);
+        if (regionName && regionName !== placeName) parts.push(regionName);
+        if (countryName && !parts.includes(countryName)) parts.push(countryName);
+
+        return parts.join(", ") || "Selected location";
+    } catch (error) {
+        console.warn("Reverse geocoding error:", error);
+        return "Selected location";
+    }
+}
+
+function overallLocationText(nearest) {
+    if (!nearest.length) {
+        return "Generate a chart first to see the astrocartography influences for this location.";
+    }
+
+    const strongest = nearest[0];
+    const planet = strongest.feature.properties?.planet || "Unknown";
+    const lineType = strongest.feature.properties?.lineType || "";
+    const title =
+        window.interpretations?.[planet]?.[lineType]?.title ||
+        `${planet} ${lineType}`;
+
+    if (strongest.miles <= 50) {
+        return `${title} is the strongest influence here because this location sits very close to that line. The additional nearby lines below add secondary themes.`;
+    }
+    if (strongest.miles <= 150) {
+        return `${title} is the strongest nearby influence. Its themes may be noticeable here, with the other nearby lines adding secondary influences.`;
+    }
+    if (strongest.miles <= 300) {
+        return `${title} is the nearest influence, but it is at a moderate distance. Treat it as a background theme rather than as strong as living directly on the line.`;
+    }
+    return `There is no astrocartography line especially close to this point. ${title} is the nearest mapped line, but its influence should be treated as comparatively distant.`;
+}
+
+function locationPopupHTML(locationName, lngLat, nearest) {
+    const coordinates =
         `${Math.abs(lngLat.lat).toFixed(2)}°${lngLat.lat >= 0 ? "N" : "S"}, ` +
         `${Math.abs(lngLat.lng).toFixed(2)}°${lngLat.lng >= 0 ? "E" : "W"}`;
 
-    const items = nearest.map(({ feature }) => {
+    const lineCards = nearest.map(({ feature, miles }, index) => {
         const planet = feature.properties?.planet || "Unknown";
         const lineType = feature.properties?.lineType || "";
         const interpretation = window.interpretations?.[planet]?.[lineType];
@@ -561,44 +635,56 @@ function globePopupHTML(lngLat, nearest) {
         const body = interpretation?.text || "Interpretation coming soon.";
 
         return `
-            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.12);">
-                <div style="font-weight:600;margin-bottom:5px;">${title}</div>
-                <div style="font-size:13px;line-height:1.5;">${body}</div>
+            <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(0,0,0,.12);">
+                <div style="display:flex;justify-content:space-between;gap:14px;align-items:baseline;">
+                    <strong>${index === 0 ? "Strongest: " : ""}${title}</strong>
+                    <span style="font-size:12px;white-space:nowrap;opacity:.65;">${Math.round(miles)} mi</span>
+                </div>
+                <div style="font-size:12px;margin-top:3px;opacity:.65;">${proximityLabel(miles)}</div>
+                <div style="font-size:13px;line-height:1.55;margin-top:7px;">${body}</div>
             </div>
         `;
     }).join("");
 
     return `
-        <div style="min-width:280px;max-width:340px;font-family:Inter,Helvetica,Arial,sans-serif;color:#111;">
-            <div style="font-size:18px;font-weight:600;">This location</div>
-            <div style="font-size:12px;opacity:.6;margin-top:3px;">${coords}</div>
-            <div style="font-size:13px;line-height:1.5;margin-top:8px;">
-                The three astrocartography lines closest to this point:
-            </div>
-            ${items || `<div style="margin-top:12px;">Generate a chart first.</div>`}
+        <div style="min-width:290px;max-width:350px;font-family:Inter,Helvetica,Arial,sans-serif;color:#111;">
+            <div style="font-size:20px;font-weight:600;line-height:1.2;">${locationName}</div>
+            <div style="font-size:12px;opacity:.55;margin-top:4px;">${coordinates}</div>
+            <div style="font-size:13px;line-height:1.55;margin-top:11px;">${overallLocationText(nearest)}</div>
+            ${lineCards}
         </div>
     `;
 }
 
-map.on("click", (e) => {
+map.on("click", async (e) => {
     if (map.getLayer("astro-lines")) {
-        const lineHits = map.queryRenderedFeatures(e.point, {
-            layers: ["astro-lines"]
-        });
+        const lineHits = map.queryRenderedFeatures(e.point, { layers: ["astro-lines"] });
         if (lineHits.length) return;
     }
 
-    if (activePopup) activePopup.remove();
+    if (activePopup) {
+        activePopup.remove();
+        activePopup = null;
+    }
 
-    activePopup = new mapboxgl.Popup({
+    const popup = new mapboxgl.Popup({
         offset: 12,
         closeButton: true,
         closeOnClick: true,
-        maxWidth: "360px"
+        maxWidth: "380px"
     })
         .setLngLat(e.lngLat)
-        .setHTML(globePopupHTML(e.lngLat, nearestAstroLines(e.lngLat, 3)))
+        .setHTML(`<div style="min-width:240px;font-family:Inter,Helvetica,Arial,sans-serif;color:#111;">Finding location...</div>`)
         .addTo(map);
+
+    activePopup = popup;
+
+    const locationName = await reverseGeocodeLocation(e.lngLat);
+    const nearest = nearestAstroLines(e.lngLat, 3);
+
+    if (activePopup !== popup) return;
+
+    popup.setHTML(locationPopupHTML(locationName, e.lngLat, nearest));
 });
 
 function drawAstroLines(data) {
