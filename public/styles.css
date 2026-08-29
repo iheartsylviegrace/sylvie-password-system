@@ -6,75 +6,108 @@
 
 html,
 body{
+
     width:100%;
     height:100%;
     overflow:hidden;
-    background:#000;
+
+    font-family:
+        Inter,
+        Helvetica,
+        Arial,
+        sans-serif;
+
     color:white;
-    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+
+    background:black;
+
 }
 
-#app{
-    width:100%;
-    height:100%;
-    display:grid;
-    grid-template-columns:360px 1fr;
+/* Fullscreen globe */
+
+#map{
+
+    position:fixed;
+
+    inset:0;
+
+    width:100vw;
+
+    height:100vh;
+
+    z-index:0;
+
 }
+
+/* Floating glass panel */
 
 #sidebar{
 
-    background:rgba(0,0,0,.72);
+    position:absolute;
 
-    backdrop-filter:blur(18px);
-    -webkit-backdrop-filter:blur(18px);
+    top:40px;
 
-    padding:42px;
+    left:40px;
 
-    overflow-y:auto;
+    width:420px;
 
-    z-index:10;
+    padding:34px;
 
-    border-right:1px solid rgba(255,255,255,.08);
+    border-radius:26px;
+
+    background:rgba(0,0,0,.45);
+
+    backdrop-filter:blur(28px);
+
+    -webkit-backdrop-filter:blur(28px);
+
+    border:1px solid rgba(255,255,255,.08);
+
+    box-shadow:
+
+        0 18px 60px rgba(0,0,0,.55);
+
+    z-index:20;
 
 }
 
+/* Heading */
+
 h1{
 
-    font-size:38px;
+    font-size:42px;
 
     font-weight:300;
 
-    letter-spacing:.03em;
+    margin-bottom:10px;
+
+    letter-spacing:-1px;
 
 }
 
 .subtitle{
 
-    margin-top:8px;
+    color:#bcbcbc;
 
-    color:#9f9f9f;
+    margin-bottom:34px;
 
     font-size:15px;
 
-    margin-bottom:40px;
-
 }
+
+/* Form */
 
 label{
 
     display:block;
 
-    margin-top:22px;
+    margin-top:18px;
 
     margin-bottom:8px;
 
     font-size:13px;
 
-    letter-spacing:.08em;
-
-    text-transform:uppercase;
-
-    color:#bfbfbf;
+    color:#cfcfcf;
 
 }
 
@@ -82,13 +115,13 @@ input{
 
     width:100%;
 
-    padding:14px 16px;
+    padding:15px;
 
-    border-radius:12px;
+    border-radius:14px;
 
-    border:1px solid rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.1);
 
-    background:#101010;
+    background:rgba(255,255,255,.05);
 
     color:white;
 
@@ -102,17 +135,19 @@ input{
 
 input:focus{
 
-    border-color:#ff2ea6;
+    border-color:white;
 
-    box-shadow:0 0 0 2px rgba(255,46,166,.18);
+    background:rgba(255,255,255,.08);
 
 }
+
+/* Button */
 
 button{
 
     width:100%;
 
-    margin-top:34px;
+    margin-top:28px;
 
     padding:16px;
 
@@ -120,9 +155,9 @@ button{
 
     border-radius:14px;
 
-    background:#ff2ea6;
+    background:white;
 
-    color:white;
+    color:black;
 
     font-size:16px;
 
@@ -134,77 +169,56 @@ button{
 
 button:hover{
 
-    transform:translateY(-1px);
+    transform:translateY(-2px);
 
-    background:#ff4bb4;
-
-}
-
-button:active{
-
-    transform:translateY(0);
+    opacity:.92;
 
 }
+
+/* Status */
 
 #status{
 
-    margin-top:28px;
+    margin-top:22px;
 
-    min-height:28px;
-
-    color:#7cffc7;
+    color:#9be4c0;
 
     font-size:14px;
 
-    white-space:pre-wrap;
+    min-height:20px;
 
 }
 
-#map{
+/* Hide Mapbox logo area until later */
 
-    position:relative;
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right{
 
-    width:100%;
-
-    height:100%;
-
-}
-
-.mapboxgl-canvas{
-
-    cursor:grab;
+    opacity:.35;
 
 }
 
-.mapboxgl-canvas:active{
-
-    cursor:grabbing;
-
-}
-
-.mapboxgl-ctrl-group{
-
-    border-radius:12px !important;
-
-    overflow:hidden;
-
-}
+/* Mobile */
 
 @media (max-width:900px){
 
-    #app{
+    #sidebar{
 
-        grid-template-columns:1fr;
+        left:20px;
 
-        grid-template-rows:420px 1fr;
+        right:20px;
+
+        top:20px;
+
+        width:auto;
+
+        padding:24px;
 
     }
 
-    #sidebar{
+    h1{
 
-        border-right:none;
-
-        border-bottom:1px solid rgba(255,255,255,.08);
+        font-size:34px;
 
     }
 
