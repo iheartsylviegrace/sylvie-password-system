@@ -11,7 +11,7 @@ const map = new mapboxgl.Map({
 
     projection: "globe",
 
-    center: [0, 15],
+    center: [0,15],
 
     zoom: 1.45,
 
@@ -21,23 +21,17 @@ const map = new mapboxgl.Map({
 
     antialias: true,
 
-    config: {
+    config:{
 
-        basemap: {
+        basemap:{
 
-            showRoadLabels: false,
-
-            showPointOfInterestLabels: false,
-
-            showPlaceLabels: false,
-
-            showTransitLabels: false,
-
-            showPedestrianRoads: false,
-
-            showRoadsAndTransit: false,
-
-            showAdminBoundaries: false
+            showRoadLabels:false,
+            showPointOfInterestLabels:false,
+            showPlaceLabels:false,
+            showTransitLabels:false,
+            showPedestrianRoads:false,
+            showRoadsAndTransit:false,
+            showAdminBoundaries:false
 
         }
 
@@ -52,23 +46,29 @@ map.addControl(
     "top-right"
 );
 
-map.on("style.load", () => {
+map.on("style.load",()=>{
 
     map.setProjection("globe");
 
     map.setFog({
 
-        color: "rgb(170,200,235)",
+        color:"rgb(170,200,235)",
 
-        "high-color": "rgb(25,45,90)",
+        "high-color":"rgb(25,45,90)",
 
-        "space-color": "rgb(2,2,8)",
+        "space-color":"rgb(2,2,8)",
 
-        "horizon-blend": 0.08,
+        "horizon-blend":0.08,
 
-        "star-intensity": 0.8
+        "star-intensity":0.8
 
     });
+
+    if(window.currentAstroData){
+
+        drawAstroLines(window.currentAstroData);
+
+    }
 
 });
 
@@ -81,10 +81,15 @@ function rotateGlobe(){
     if(map.getZoom() < 4){
 
         map.rotateTo(
-            map.getBearing() + 0.04,
+
+            map.getBearing()+0.04,
+
             {
+
                 duration:0
+
             }
+
         );
 
     }
@@ -122,104 +127,153 @@ map.on("load",()=>{
     rotateGlobe();
 
 });
+
 function drawAstroLines(data){
 
-    if(!data.lines) return;
+    if(!data.lines){
 
-    // remove previous chart
-    if(map.getLayer("astro-lines")){
-        map.removeLayer("astro-lines");
+        console.log("No astro lines.");
+
+        return;
+
     }
 
-    if(map.getSource("astro-lines")){
-        map.removeSource("astro-lines");
-    }
+    const features = data.lines.map(line=>({
 
-    const features = [];
+        type:"Feature",
 
-    data.lines.forEach(line => {
+        properties:{
 
-        const coordinates = line.points.map(point => [
+            planet:line.object,
 
-            point.longitude_deg,
-            point.latitude_deg
+            lineType:line.line_type
 
-        ]);
+        },
 
-        features.push({
+        geometry:{
 
-            type:"Feature",
+            type:"LineString",
 
-            properties:{
+            coordinates:line.points.map(point=>([
 
-                planet:line.object,
-                type:line.line_type
+                point.longitude_deg,
 
-            },
+                point.latitude_deg
 
-            geometry:{
+            ]))
 
-                type:"LineString",
+        }
 
-                coordinates
+    }));
+
+    function addLines(){
+
+        if(map.getLayer("astro-lines")){
+
+            map.removeLayer("astro-lines");
+
+        }
+
+        if(map.getSource("astro-lines")){
+
+            map.removeSource("astro-lines");
+
+        }
+
+        map.addSource("astro-lines",{
+
+            type:"geojson",
+
+            data:{
+
+                type:"FeatureCollection",
+
+                features
 
             }
 
         });
 
-    });
+        try{
 
-    map.addSource("astro-lines",{
+            map.addLayer({
 
-        type:"geojson",
+                id:"astro-lines",
 
-        data:{
+                type:"line",
 
-            type:"FeatureCollection",
+                source:"astro-lines",
 
-            features
+                layout:{
+
+                    "line-join":"round",
+
+                    "line-cap":"round"
+
+                },
+
+                paint:{
+
+                    "line-color":[
+
+                        "match",
+
+                        ["get","planet"],
+
+                        "Sun","#FFD84D",
+
+                        "Moon","#DDE9FF",
+
+                        "Mercury","#66FFFF",
+
+                        "Venus","#FF66CC",
+
+                        "Mars","#FF4040",
+
+                        "Jupiter","#FFB366",
+
+                        "Saturn","#FFE066",
+
+                        "Uranus","#66FFEE",
+
+                        "Neptune","#4F7BFF",
+
+                        "Pluto","#CC66FF",
+
+                        "#FFFFFF"
+
+                    ],
+
+                    "line-width":3,
+
+                    "line-opacity":0.95
+
+                }
+
+            });
+
+            console.log("Astrocartography lines added.");
 
         }
 
-    });
+        catch(error){
 
-    map.addLayer({
-
-        id:"astro-lines",
-
-        type:"line",
-
-        source:"astro-lines",
-
-        paint:{
-
-            "line-color":[
-
-                "match",
-
-                ["get","planet"],
-
-                "Sun","#FFD84D",
-                "Moon","#DDE9FF",
-                "Mercury","#8EF7FF",
-                "Venus","#FF73D0",
-                "Mars","#FF4040",
-                "Jupiter","#FFAA55",
-                "Saturn","#FFE08C",
-                "Uranus","#58F7FF",
-                "Neptune","#4E7BFF",
-                "Pluto","#CC66FF",
-
-                "#ffffff"
-
-            ],
-
-            "line-width":2.4,
-
-            "line-opacity":0.95
+            console.error("MAPBOX LAYER ERROR",error);
 
         }
 
-    });
+    }
+
+    if(map.isStyleLoaded()){
+
+        addLines();
+
+    }
+
+    else{
+
+        map.once("style.load",addLines);
+
+    }
 
 }
