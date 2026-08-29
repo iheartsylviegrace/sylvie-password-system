@@ -506,6 +506,101 @@ function bindAstroLineInteractions() {
     });
 }
 
+
+// ---------- CLICK ANYWHERE ON THE GLOBE ----------
+
+function distanceToSegmentSquared(point, a, b) {
+    const [px, py] = point;
+    const [ax, ay] = a;
+    const [bx, by] = b;
+    const dx = bx - ax;
+    const dy = by - ay;
+
+    if (dx === 0 && dy === 0) return (px - ax) ** 2 + (py - ay) ** 2;
+
+    const t = Math.max(0, Math.min(1,
+        ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)
+    ));
+
+    const cx = ax + t * dx;
+    const cy = ay + t * dy;
+    return (px - cx) ** 2 + (py - cy) ** 2;
+}
+
+function nearestAstroLines(lngLat, limit = 3) {
+    if (!window.__astroFeatures) return [];
+
+    const point = [lngLat.lng, lngLat.lat];
+
+    return window.__astroFeatures.map((feature) => {
+        const coordinates = feature.geometry?.coordinates || [];
+        let best = Infinity;
+
+        for (let i = 0; i < coordinates.length - 1; i++) {
+            best = Math.min(best,
+                distanceToSegmentSquared(point, coordinates[i], coordinates[i + 1])
+            );
+        }
+
+        return { feature, distance: Math.sqrt(best) };
+    })
+    .sort((a, b) => a.distance - b.distance)
+    .slice(0, limit);
+}
+
+function globePopupHTML(lngLat, nearest) {
+    const coords =
+        `${Math.abs(lngLat.lat).toFixed(2)}°${lngLat.lat >= 0 ? "N" : "S"}, ` +
+        `${Math.abs(lngLat.lng).toFixed(2)}°${lngLat.lng >= 0 ? "E" : "W"}`;
+
+    const items = nearest.map(({ feature }) => {
+        const planet = feature.properties?.planet || "Unknown";
+        const lineType = feature.properties?.lineType || "";
+        const interpretation = window.interpretations?.[planet]?.[lineType];
+        const title = interpretation?.title || `${planet} ${lineType}`;
+        const body = interpretation?.text || "Interpretation coming soon.";
+
+        return `
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid rgba(0,0,0,.12);">
+                <div style="font-weight:600;margin-bottom:5px;">${title}</div>
+                <div style="font-size:13px;line-height:1.5;">${body}</div>
+            </div>
+        `;
+    }).join("");
+
+    return `
+        <div style="min-width:280px;max-width:340px;font-family:Inter,Helvetica,Arial,sans-serif;color:#111;">
+            <div style="font-size:18px;font-weight:600;">This location</div>
+            <div style="font-size:12px;opacity:.6;margin-top:3px;">${coords}</div>
+            <div style="font-size:13px;line-height:1.5;margin-top:8px;">
+                The three astrocartography lines closest to this point:
+            </div>
+            ${items || `<div style="margin-top:12px;">Generate a chart first.</div>`}
+        </div>
+    `;
+}
+
+map.on("click", (e) => {
+    if (map.getLayer("astro-lines")) {
+        const lineHits = map.queryRenderedFeatures(e.point, {
+            layers: ["astro-lines"]
+        });
+        if (lineHits.length) return;
+    }
+
+    if (activePopup) activePopup.remove();
+
+    activePopup = new mapboxgl.Popup({
+        offset: 12,
+        closeButton: true,
+        closeOnClick: true,
+        maxWidth: "360px"
+    })
+        .setLngLat(e.lngLat)
+        .setHTML(globePopupHTML(e.lngLat, nearestAstroLines(e.lngLat, 3)))
+        .addTo(map);
+});
+
 function drawAstroLines(data) {
     if (!data || !Array.isArray(data.lines)) {
         console.error("No astrocartography lines found.", data);
@@ -595,6 +690,8 @@ function drawAstroLines(data) {
         features.length,
         features
     );
+
+    window.__astroFeatures = features;
 
     function addLines() {
         try {
