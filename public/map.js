@@ -1,9 +1,7 @@
 // public/map.js
 
 mapboxgl.accessToken =
-"YOUR_PUBLIC_MAPBOX_TOKEN";
-
-// Create the map
+"pk.eyJ1Ijoic3lsdmllZ3JhY2UiLCJhIjoiY210ZG5idXF5MDVzbzM0b2puMXZscDk5NiJ9.PToyVgmuXaELzF8xoMynmg";
 
 const map = new mapboxgl.Map({
 
@@ -49,17 +47,10 @@ const map = new mapboxgl.Map({
 
 window.map = map;
 
-// Navigation controls
-
 map.addControl(
-
     new mapboxgl.NavigationControl(),
-
     "top-right"
-
 );
-
-// Atmosphere
 
 map.on("style.load", () => {
 
@@ -73,7 +64,7 @@ map.on("style.load", () => {
 
         "space-color": "rgb(2,2,8)",
 
-        horizon-blend: 0.08,
+        "horizon-blend": 0.08,
 
         "star-intensity": 0.8
 
@@ -81,24 +72,19 @@ map.on("style.load", () => {
 
 });
 
-// Smooth autorotation
-
 let userInteracting = false;
 
 function rotateGlobe(){
 
     if(userInteracting) return;
 
-    const zoom = map.getZoom();
-
-    if(zoom < 4){
+    if(map.getZoom() < 4){
 
         map.rotateTo(
-
             map.getBearing() + 0.04,
-
-            { duration: 0 }
-
+            {
+                duration:0
+            }
         );
 
     }
