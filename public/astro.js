@@ -3,6 +3,38 @@
 const form = document.getElementById("birth-data-form");
 const status = document.getElementById("status");
 
+const sidebar = document.getElementById("sidebar");
+const sidebarHandle = document.getElementById("sidebar-handle");
+
+// On phones/tablets, swipe the glass form up to tuck it away and down to bring it back.
+if (sidebar && sidebarHandle) {
+    let startY = 0;
+    let currentY = 0;
+
+    sidebarHandle.addEventListener("touchstart", (event) => {
+        startY = event.touches[0].clientY;
+        currentY = startY;
+    }, { passive: true });
+
+    sidebarHandle.addEventListener("touchmove", (event) => {
+        currentY = event.touches[0].clientY;
+    }, { passive: true });
+
+    sidebarHandle.addEventListener("touchend", () => {
+        const distance = currentY - startY;
+        if (distance < -35) sidebar.classList.add("is-collapsed");
+        if (distance > 35) sidebar.classList.remove("is-collapsed");
+    });
+
+    // A tap on the handle also toggles it, useful for accessibility and desktop emulation.
+    sidebarHandle.addEventListener("click", () => {
+        if (window.matchMedia("(max-width: 900px)").matches) {
+            sidebar.classList.toggle("is-collapsed");
+        }
+    });
+}
+
+
 form.addEventListener("submit", async (event) => {
 
     event.preventDefault();
@@ -95,6 +127,11 @@ form.addEventListener("submit", async (event) => {
         // Stop decorative globe rotation once the generated chart is on screen.
         if (typeof window.freezeAstroGlobe === "function") {
             window.freezeAstroGlobe();
+        }
+
+        // On mobile, tuck the completed form up so the chart is immediately visible.
+        if (sidebar && window.matchMedia("(max-width: 900px)").matches) {
+            sidebar.classList.add("is-collapsed");
         }
 
     }
