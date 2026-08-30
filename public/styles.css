@@ -198,6 +198,73 @@ button:hover{
 
 }
 
+
+/* Birth city autocomplete */
+
+#city-autocomplete-wrap{
+    position:relative;
+}
+
+#city-suggestions{
+    position:absolute;
+    left:0;
+    right:0;
+    top:calc(100% + 6px);
+    z-index:100;
+    display:none;
+    max-height:240px;
+    overflow-y:auto;
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+    background:rgba(10,10,14,.94);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    box-shadow:0 18px 40px rgba(0,0,0,.45);
+}
+
+#city-suggestions.is-open{
+    display:block;
+}
+
+.city-suggestion{
+    width:100%;
+    margin:0;
+    padding:12px 14px;
+    border:0;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    border-radius:0;
+    background:transparent;
+    color:white;
+    text-align:left;
+    font-size:14px;
+    line-height:1.35;
+    cursor:pointer;
+}
+
+.city-suggestion:last-child{
+    border-bottom:0;
+}
+
+.city-suggestion:hover,
+.city-suggestion:focus{
+    transform:none;
+    opacity:1;
+    background:rgba(255,255,255,.09);
+}
+
+.city-suggestion-name{
+    display:block;
+    font-weight:600;
+}
+
+.city-suggestion-context{
+    display:block;
+    margin-top:2px;
+    color:#bcbcbc;
+    font-size:12px;
+}
+
+
 /* Mobile */
 
 @media (max-width:900px){
@@ -345,5 +412,19 @@ button:hover{
 
     #sidebar.mobile-collapsed #mobile-form-handle:hover{
         transform:translateX(-50%);
+    }
+}
+
+
+@media (max-width:900px){
+    #city-suggestions{
+        max-height:210px;
+    }
+
+    .city-suggestion{
+        min-height:auto;
+        margin:0;
+        padding:11px 12px;
+        font-size:13px;
     }
 }
