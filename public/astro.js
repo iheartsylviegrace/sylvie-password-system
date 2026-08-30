@@ -3,6 +3,166 @@
 const form = document.getElementById("birth-data-form");
 const status = document.getElementById("status");
 
+
+// ---------- Birth city autocomplete ----------
+const cityInput = document.getElementById("city");
+let selectedBirthplace = null;
+let citySearchTimer = null;
+let citySearchController = null;
+
+function setupCityAutocomplete() {
+    if (!cityInput) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.id = "city-autocomplete-wrap";
+
+    cityInput.parentNode.insertBefore(wrapper, cityInput);
+    wrapper.appendChild(cityInput);
+
+    const suggestions = document.createElement("div");
+    suggestions.id = "city-suggestions";
+    suggestions.setAttribute("role", "listbox");
+    wrapper.appendChild(suggestions);
+
+    function closeSuggestions() {
+        suggestions.classList.remove("is-open");
+        suggestions.innerHTML = "";
+    }
+
+    function featureLabel(feature) {
+        const props = feature.properties || {};
+        const name = props.name || feature.text || "";
+        const full =
+            props.full_address ||
+            feature.place_name ||
+            [name, props.place_formatted].filter(Boolean).join(", ");
+
+        return { name, full };
+    }
+
+    function featureCoordinates(feature) {
+        if (Array.isArray(feature.geometry?.coordinates)) {
+            return feature.geometry.coordinates;
+        }
+        if (Array.isArray(feature.center)) {
+            return feature.center;
+        }
+        return null;
+    }
+
+    async function searchCities(query) {
+        if (citySearchController) citySearchController.abort();
+        citySearchController = new AbortController();
+
+        const url =
+            "https://api.mapbox.com/search/geocode/v6/forward" +
+            "?q=" + encodeURIComponent(query) +
+            "&types=place,locality" +
+            "&autocomplete=true" +
+            "&limit=6" +
+            "&language=en" +
+            "&access_token=" + encodeURIComponent(mapboxgl.accessToken);
+
+        const response = await fetch(url, {
+            signal: citySearchController.signal
+        });
+
+        if (!response.ok) {
+            throw new Error("Location suggestions failed.");
+        }
+
+        return response.json();
+    }
+
+    function showSuggestions(features) {
+        suggestions.innerHTML = "";
+
+        features.forEach((feature) => {
+            const coordinates = featureCoordinates(feature);
+            if (!coordinates) return;
+
+            const { name, full } = featureLabel(feature);
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "city-suggestion";
+            button.setAttribute("role", "option");
+
+            const nameSpan = document.createElement("span");
+            nameSpan.className = "city-suggestion-name";
+            nameSpan.textContent = name || full;
+
+            const contextSpan = document.createElement("span");
+            contextSpan.className = "city-suggestion-context";
+            contextSpan.textContent =
+                full && full !== name
+                    ? full.replace(new RegExp("^" + name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + ",?\\s*"), "")
+                    : "";
+
+            button.appendChild(nameSpan);
+            if (contextSpan.textContent) button.appendChild(contextSpan);
+
+            button.addEventListener("click", () => {
+                selectedBirthplace = {
+                    label: full || name,
+                    longitude: Number(coordinates[0]),
+                    latitude: Number(coordinates[1])
+                };
+
+                cityInput.value = selectedBirthplace.label;
+                closeSuggestions();
+                cityInput.focus();
+            });
+
+            suggestions.appendChild(button);
+        });
+
+        suggestions.classList.toggle(
+            "is-open",
+            suggestions.children.length > 0
+        );
+    }
+
+    cityInput.setAttribute("autocomplete", "off");
+    cityInput.setAttribute("spellcheck", "false");
+
+    cityInput.addEventListener("input", () => {
+        selectedBirthplace = null;
+
+        clearTimeout(citySearchTimer);
+
+        const query = cityInput.value.trim();
+
+        if (query.length < 2) {
+            closeSuggestions();
+            return;
+        }
+
+        citySearchTimer = setTimeout(async () => {
+            try {
+                const data = await searchCities(query);
+                showSuggestions(data.features || []);
+            } catch (error) {
+                if (error.name !== "AbortError") {
+                    console.warn("City autocomplete:", error);
+                    closeSuggestions();
+                }
+            }
+        }, 220);
+    });
+
+    cityInput.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") closeSuggestions();
+    });
+
+    document.addEventListener("pointerdown", (event) => {
+        if (!wrapper.contains(event.target)) closeSuggestions();
+    });
+}
+
+setupCityAutocomplete();
+
+
 form.addEventListener("submit", async (event) => {
 
     event.preventDefault();
@@ -14,28 +174,59 @@ form.addEventListener("submit", async (event) => {
 
         const city = document.getElementById("city").value.trim();
 
-        const geoResponse = await fetch(
+        let longitude;
+        let latitude;
+        let resolvedBirthCity = city;
 
-            "https://api.mapbox.com/geocoding/v5/mapbox.places/" +
-            encodeURIComponent(city) +
-            ".json?limit=1&access_token=" +
-            mapboxgl.accessToken
+        // Prefer the exact place the user chose from the suggestions.
+        if (
+            selectedBirthplace &&
+            selectedBirthplace.label === city &&
+            Number.isFinite(selectedBirthplace.longitude) &&
+            Number.isFinite(selectedBirthplace.latitude)
+        ) {
+            longitude = selectedBirthplace.longitude;
+            latitude = selectedBirthplace.latitude;
+            resolvedBirthCity = selectedBirthplace.label;
+        } else {
+            // If they typed a city without selecting a suggestion,
+            // resolve it once at submit time instead of silently using stale coordinates.
+            const geoUrl =
+                "https://api.mapbox.com/search/geocode/v6/forward" +
+                "?q=" + encodeURIComponent(city) +
+                "&types=place,locality" +
+                "&limit=1" +
+                "&language=en" +
+                "&access_token=" + encodeURIComponent(mapboxgl.accessToken);
 
-        );
+            const geoResponse = await fetch(geoUrl);
+            const geoData = await geoResponse.json();
 
-        const geoData = await geoResponse.json();
+            if (!geoResponse.ok || !geoData.features || !geoData.features.length) {
+                status.style.color = "#ff7777";
+                status.textContent = "Couldn't find that city.";
+                return;
+            }
 
-        if (!geoData.features || !geoData.features.length) {
+            const feature = geoData.features[0];
+            const coordinates =
+                feature.geometry?.coordinates ||
+                feature.center;
 
-            status.style.color = "#ff7777";
-            status.textContent = "Couldn't find that city.";
+            if (!Array.isArray(coordinates)) {
+                status.style.color = "#ff7777";
+                status.textContent = "Couldn't find that city.";
+                return;
+            }
 
-            return;
+            longitude = Number(coordinates[0]);
+            latitude = Number(coordinates[1]);
 
+            resolvedBirthCity =
+                feature.properties?.full_address ||
+                feature.place_name ||
+                city;
         }
-
-        const longitude = geoData.features[0].center[0];
-        const latitude = geoData.features[0].center[1];
 
         status.textContent = "Generating astrocartography...";
 
@@ -73,7 +264,7 @@ form.addEventListener("submit", async (event) => {
 
                 timezone: 0,
 
-                birthCity: city
+                birthCity: resolvedBirthCity
 
             })
 
