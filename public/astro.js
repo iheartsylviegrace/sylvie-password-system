@@ -3,38 +3,6 @@
 const form = document.getElementById("birth-data-form");
 const status = document.getElementById("status");
 
-const sidebar = document.getElementById("sidebar");
-const sidebarHandle = document.getElementById("sidebar-handle");
-
-// On phones/tablets, swipe the glass form up to tuck it away and down to bring it back.
-if (sidebar && sidebarHandle) {
-    let startY = 0;
-    let currentY = 0;
-
-    sidebarHandle.addEventListener("touchstart", (event) => {
-        startY = event.touches[0].clientY;
-        currentY = startY;
-    }, { passive: true });
-
-    sidebarHandle.addEventListener("touchmove", (event) => {
-        currentY = event.touches[0].clientY;
-    }, { passive: true });
-
-    sidebarHandle.addEventListener("touchend", () => {
-        const distance = currentY - startY;
-        if (distance < -35) sidebar.classList.add("is-collapsed");
-        if (distance > 35) sidebar.classList.remove("is-collapsed");
-    });
-
-    // A tap on the handle also toggles it, useful for accessibility and desktop emulation.
-    sidebarHandle.addEventListener("click", () => {
-        if (window.matchMedia("(max-width: 900px)").matches) {
-            sidebar.classList.toggle("is-collapsed");
-        }
-    });
-}
-
-
 form.addEventListener("submit", async (event) => {
 
     event.preventDefault();
@@ -129,9 +97,9 @@ form.addEventListener("submit", async (event) => {
             window.freezeAstroGlobe();
         }
 
-        // On mobile, tuck the completed form up so the chart is immediately visible.
-        if (sidebar && window.matchMedia("(max-width: 900px)").matches) {
-            sidebar.classList.add("is-collapsed");
+        // On mobile, slide the completed form fully out of the way.
+        if (typeof window.collapseAstroForm === "function") {
+            window.collapseAstroForm();
         }
 
     }
@@ -146,3 +114,99 @@ form.addEventListener("submit", async (event) => {
     }
 
 });
+
+// ---------- Mobile retractable birth form ----------
+(() => {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+
+    let handle = document.getElementById("mobile-form-handle");
+
+    if (!handle) {
+        handle = document.createElement("button");
+        handle.type = "button";
+        handle.id = "mobile-form-handle";
+        handle.setAttribute("aria-label", "Hide birth chart form");
+        handle.setAttribute("aria-expanded", "true");
+        handle.textContent = "⌃";
+        sidebar.prepend(handle);
+    }
+
+    const isMobile = () => window.matchMedia("(max-width: 900px)").matches;
+    let collapsed = false;
+    let startY = null;
+
+    function setPanelOffset() {
+        if (!isMobile()) {
+            sidebar.style.transform = "";
+            return;
+        }
+
+        if (collapsed) {
+            // Move the ENTIRE panel above the viewport.
+            // The handle is absolutely positioned below it, so it alone remains visible.
+            const top = sidebar.getBoundingClientRect().top;
+            const panelHeight = sidebar.offsetHeight;
+            const safeGap = 8;
+            sidebar.style.transform =
+                `translateY(-${Math.ceil(top + panelHeight + safeGap)}px)`;
+        } else {
+            sidebar.style.transform = "translateY(0)";
+            sidebar.scrollTop = 0;
+        }
+    }
+
+    function collapsePanel() {
+        if (!isMobile()) return;
+        collapsed = true;
+        sidebar.classList.add("mobile-collapsed");
+        handle.textContent = "⌄";
+        handle.setAttribute("aria-label", "Show birth chart form");
+        handle.setAttribute("aria-expanded", "false");
+        requestAnimationFrame(setPanelOffset);
+    }
+
+    function expandPanel() {
+        collapsed = false;
+        sidebar.classList.remove("mobile-collapsed");
+        sidebar.style.transform = "translateY(0)";
+        sidebar.scrollTop = 0;
+        handle.textContent = "⌃";
+        handle.setAttribute("aria-label", "Hide birth chart form");
+        handle.setAttribute("aria-expanded", "true");
+    }
+
+    handle.addEventListener("click", () => {
+        collapsed ? expandPanel() : collapsePanel();
+    });
+
+    sidebar.addEventListener("touchstart", (event) => {
+        if (event.touches.length !== 1) return;
+        startY = event.touches[0].clientY;
+    }, { passive: true });
+
+    sidebar.addEventListener("touchend", (event) => {
+        if (startY === null || !event.changedTouches.length) return;
+
+        const deltaY = event.changedTouches[0].clientY - startY;
+        startY = null;
+
+        if (deltaY < -55 && !collapsed) collapsePanel();
+        if (deltaY > 55 && collapsed) expandPanel();
+    }, { passive: true });
+
+    window.addEventListener("resize", () => {
+        if (!isMobile()) {
+            collapsed = false;
+            sidebar.classList.remove("mobile-collapsed");
+            sidebar.style.transform = "";
+            handle.textContent = "⌃";
+            handle.setAttribute("aria-expanded", "true");
+        } else {
+            requestAnimationFrame(setPanelOffset);
+        }
+    });
+
+    // Called after a successful chart generation.
+    window.collapseAstroForm = collapsePanel;
+})();
