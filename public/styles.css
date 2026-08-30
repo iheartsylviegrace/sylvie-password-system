@@ -198,6 +198,12 @@ button:hover{
 
 }
 
+
+/* Mobile swipe handle (hidden on desktop) */
+#sidebar-handle{
+    display:none;
+}
+
 /* Mobile */
 
 @media (max-width:900px){
@@ -212,10 +218,40 @@ button:hover{
         overflow-y:auto;
         overscroll-behavior:contain;
         -webkit-overflow-scrolling:touch;
-        padding:18px;
+        padding:28px 18px 18px;
         border-radius:20px;
         backdrop-filter:blur(20px);
         -webkit-backdrop-filter:blur(20px);
+        transition:transform .32s cubic-bezier(.22,.61,.36,1);
+        will-change:transform;
+        touch-action:pan-y;
+    }
+
+    #sidebar.is-collapsed{
+        transform:translateY(calc(-100% + 54px));
+        overflow:hidden;
+    }
+
+    #sidebar-handle{
+        display:flex;
+        position:absolute;
+        top:0;
+        left:0;
+        width:100%;
+        height:28px;
+        align-items:center;
+        justify-content:center;
+        cursor:grab;
+        touch-action:none;
+        z-index:2;
+    }
+
+    #sidebar-handle span{
+        display:block;
+        width:42px;
+        height:5px;
+        border-radius:999px;
+        background:rgba(255,255,255,.58);
     }
 
     h1{
@@ -275,7 +311,7 @@ button:hover{
 
     #sidebar{
         width:min(82vw, 315px);
-        padding:16px;
+        padding:28px 16px 16px;
     }
 
     h1{
