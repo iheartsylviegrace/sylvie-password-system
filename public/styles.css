@@ -203,23 +203,82 @@ button:hover{
 @media (max-width:900px){
 
     #sidebar{
-
-        left:20px;
-
-        right:20px;
-
-        top:20px;
-
-        width:auto;
-
-        padding:24px;
-
+        position:absolute;
+        top:max(12px, env(safe-area-inset-top));
+        left:12px;
+        right:auto;
+        width:min(86vw, 340px);
+        max-height:calc(100dvh - max(24px, env(safe-area-inset-top)) - 12px);
+        overflow-y:auto;
+        overscroll-behavior:contain;
+        -webkit-overflow-scrolling:touch;
+        padding:18px;
+        border-radius:20px;
+        backdrop-filter:blur(20px);
+        -webkit-backdrop-filter:blur(20px);
     }
 
     h1{
-
-        font-size:34px;
-
+        font-size:30px;
+        line-height:1.05;
+        margin-bottom:5px;
     }
 
+    .subtitle{
+        margin-bottom:18px;
+        font-size:13px;
+    }
+
+    label{
+        margin-top:12px;
+        margin-bottom:6px;
+        font-size:12px;
+    }
+
+    input{
+        min-height:46px;
+        padding:11px 12px;
+        border-radius:12px;
+        font-size:16px;
+    }
+
+    button{
+        margin-top:18px;
+        padding:13px;
+        border-radius:12px;
+        font-size:16px;
+    }
+
+    #status{
+        margin-top:14px;
+        min-height:18px;
+        font-size:13px;
+    }
+
+    .mapboxgl-ctrl-top-right{
+        top:max(8px, env(safe-area-inset-top));
+        right:8px;
+    }
+
+    .mapboxgl-popup{
+        max-width:calc(100vw - 28px) !important;
+    }
+
+    .mapboxgl-popup-content{
+        max-height:58dvh;
+        overflow-y:auto;
+        -webkit-overflow-scrolling:touch;
+    }
+}
+
+@media (max-width:480px){
+
+    #sidebar{
+        width:min(82vw, 315px);
+        padding:16px;
+    }
+
+    h1{
+        font-size:27px;
+    }
 }
