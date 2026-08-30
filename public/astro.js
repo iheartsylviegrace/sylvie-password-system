@@ -92,6 +92,11 @@ form.addEventListener("submit", async (event) => {
 
         drawAstroLines(data);
 
+        // Stop decorative globe rotation once the generated chart is on screen.
+        if (typeof window.freezeAstroGlobe === "function") {
+            window.freezeAstroGlobe();
+        }
+
     }
 
     catch (error) {
