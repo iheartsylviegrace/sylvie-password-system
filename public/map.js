@@ -79,12 +79,13 @@ map.on("style.load", () => {
 });
 
 let userInteracting = false;
+let chartGenerated = false;
 let selectedLineId = null;
 let hoveredLineId = null;
 let activePopup = null;
 
 function rotateGlobe() {
-    if (userInteracting) {
+    if (chartGenerated || userInteracting) {
         requestAnimationFrame(rotateGlobe);
         return;
     }
@@ -122,6 +123,13 @@ map.on("touchend", () => {
 map.on("load", () => {
     rotateGlobe();
 });
+
+// Permanently stop the decorative auto-rotation after a chart is generated.
+// The user can still drag, zoom, rotate, and explore the globe normally.
+window.freezeAstroGlobe = function () {
+    chartGenerated = true;
+    userInteracting = false;
+};
 
 function clearLineState(id, stateName) {
     if (id === null || id === undefined) return;
